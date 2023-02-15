@@ -1,0 +1,718 @@
+COMMENT Copyright 2023 Hugo Simoes
+COMMENT   Ported/adapted to urcode from https://github.com/XMunkki/FixPointCS
+COMMENT 
+COMMENT Copyright(c) Jere Sanisalo, Petri Kero
+COMMENT 
+COMMENT Permission is hereby granted, free of charge, to any person obtaining
+COMMENT a copy of this software and associated documentation files (the
+COMMENT "Software"), to deal in the Software without restriction, including
+COMMENT without limitation the rights to use, copy, modify, merge, publish,
+COMMENT distribute, sublicense, and/or sell copies of the Software, and to
+COMMENT permit persons to whom the Software is furnished to do so, subject to
+COMMENT the following conditions:
+COMMENT 
+COMMENT The above copyright notice and this permission notice shall be
+COMMENT included in all copies or substantial portions of the Software.
+COMMENT 
+COMMENT THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+COMMENT EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+COMMENT MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+COMMENT IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+COMMENT CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+COMMENT TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+COMMENT SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+CLASS FP:
+
+  METHOD_INIT():
+    THIS.`kShift = 16
+    THIS.`kFractionMask = (1 << THIS.`kShift) - 1
+    THIS.`kIntegerMask = ~THIS.`kFractionMask
+    THIS.`k32BitsMask = (((1 << 30) - 1) << 2) + 3
+    THIS.`kMinValue = `int32(0x80000000)
+    THIS.`kMaxValue = 0x7fffffff
+    THIS.`kOne = 1 << THIS.`kShift
+    THIS.`kHalf = THIS.`kOne >> 1
+    THIS.`kPi = 0x3243F
+    THIS.`kPiHalf = 0x1921F
+    THIS.`kPi2 = 0x6487E
+    THIS.`kE = 0x2b7E1
+    THIS.`kRCP_LN2 = 0x17154
+    THIS.`kRCP_LOG2_E = 0xB172
+    THIS.`kRCP_TWO_PI = 0x28BE60DC
+    THIS.`RcpPoly4Lut8Table = []
+    `push(THIS.`RcpPoly4Lut8Table, 796773553)
+    `push(THIS.`RcpPoly4Lut8Table, -1045765287)
+    `push(THIS.`RcpPoly4Lut8Table, 1072588028)
+    `push(THIS.`RcpPoly4Lut8Table, -1073726795)
+    `push(THIS.`RcpPoly4Lut8Table, 1073741824)
+    `push(THIS.`RcpPoly4Lut8Table, 456453183)
+    `push(THIS.`RcpPoly4Lut8Table, -884378041)
+    `push(THIS.`RcpPoly4Lut8Table, 1042385791)
+    `push(THIS.`RcpPoly4Lut8Table, -1071088216)
+    `push(THIS.`RcpPoly4Lut8Table, 1073651788)
+    `push(THIS.`RcpPoly4Lut8Table, 276544830)
+    `push(THIS.`RcpPoly4Lut8Table, -708646126)
+    `push(THIS.`RcpPoly4Lut8Table, 977216564)
+    `push(THIS.`RcpPoly4Lut8Table, -1060211779)
+    `push(THIS.`RcpPoly4Lut8Table, 1072962711)
+    `push(THIS.`RcpPoly4Lut8Table, 175386455)
+    `push(THIS.`RcpPoly4Lut8Table, -559044324)
+    `push(THIS.`RcpPoly4Lut8Table, 893798171)
+    `push(THIS.`RcpPoly4Lut8Table, -1039424537)
+    `push(THIS.`RcpPoly4Lut8Table, 1071009496)
+    `push(THIS.`RcpPoly4Lut8Table, 115547530)
+    `push(THIS.`RcpPoly4Lut8Table, -440524957)
+    `push(THIS.`RcpPoly4Lut8Table, 805500803)
+    `push(THIS.`RcpPoly4Lut8Table, -1010097984)
+    `push(THIS.`RcpPoly4Lut8Table, 1067345574)
+    `push(THIS.`RcpPoly4Lut8Table, 78614874)
+    `push(THIS.`RcpPoly4Lut8Table, -348853503)
+    `push(THIS.`RcpPoly4Lut8Table, 720007233)
+    `push(THIS.`RcpPoly4Lut8Table, -974591889)
+    `push(THIS.`RcpPoly4Lut8Table, 1061804940)
+    `push(THIS.`RcpPoly4Lut8Table, 54982413)
+    `push(THIS.`RcpPoly4Lut8Table, -278348465)
+    `push(THIS.`RcpPoly4Lut8Table, 641021491)
+    `push(THIS.`RcpPoly4Lut8Table, -935211003)
+    `push(THIS.`RcpPoly4Lut8Table, 1054431901)
+    `push(THIS.`RcpPoly4Lut8Table, 39383664)
+    `push(THIS.`RcpPoly4Lut8Table, -223994590)
+    `push(THIS.`RcpPoly4Lut8Table, 569927473)
+    `push(THIS.`RcpPoly4Lut8Table, -893840914)
+    `push(THIS.`RcpPoly4Lut8Table, 1045395281)
+    THIS.`RSqrtPoly3Lut16Table = []
+    `push(THIS.`RSqrtPoly3Lut16Table, -301579590)
+    `push(THIS.`RSqrtPoly3Lut16Table, 401404709)
+    `push(THIS.`RSqrtPoly3Lut16Table, -536857690)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1073741824)
+    `push(THIS.`RSqrtPoly3Lut16Table, -245423010)
+    `push(THIS.`RSqrtPoly3Lut16Table, 391086820)
+    `push(THIS.`RSqrtPoly3Lut16Table, -536203235)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1073727515)
+    `push(THIS.`RSqrtPoly3Lut16Table, -202026137)
+    `push(THIS.`RSqrtPoly3Lut16Table, 374967334)
+    `push(THIS.`RSqrtPoly3Lut16Table, -534189977)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1073642965)
+    `push(THIS.`RSqrtPoly3Lut16Table, -168017146)
+    `push(THIS.`RSqrtPoly3Lut16Table, 355951863)
+    `push(THIS.`RSqrtPoly3Lut16Table, -530632261)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1073420226)
+    `push(THIS.`RSqrtPoly3Lut16Table, -141028602)
+    `push(THIS.`RSqrtPoly3Lut16Table, 335796841)
+    `push(THIS.`RSqrtPoly3Lut16Table, -525604155)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1073001192)
+    `push(THIS.`RSqrtPoly3Lut16Table, -119367482)
+    `push(THIS.`RSqrtPoly3Lut16Table, 315555573)
+    `push(THIS.`RSqrtPoly3Lut16Table, -519290609)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1072343850)
+    `push(THIS.`RSqrtPoly3Lut16Table, -101802870)
+    `push(THIS.`RSqrtPoly3Lut16Table, 295846496)
+    `push(THIS.`RSqrtPoly3Lut16Table, -511911750)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1071422108)
+    `push(THIS.`RSqrtPoly3Lut16Table, -87426328)
+    `push(THIS.`RSqrtPoly3Lut16Table, 277017299)
+    `push(THIS.`RSqrtPoly3Lut16Table, -503685655)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1070223323)
+    `push(THIS.`RSqrtPoly3Lut16Table, -75558212)
+    `push(THIS.`RSqrtPoly3Lut16Table, 259246781)
+    `push(THIS.`RSqrtPoly3Lut16Table, -494811415)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1068745317)
+    `push(THIS.`RSqrtPoly3Lut16Table, -65683680)
+    `push(THIS.`RSqrtPoly3Lut16Table, 242608795)
+    `push(THIS.`RSqrtPoly3Lut16Table, -485462769)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1066993613)
+    `push(THIS.`RSqrtPoly3Lut16Table, -57408255)
+    `push(THIS.`RSqrtPoly3Lut16Table, 227112748)
+    `push(THIS.`RSqrtPoly3Lut16Table, -475787122)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1064979109)
+    `push(THIS.`RSqrtPoly3Lut16Table, -50426484)
+    `push(THIS.`RSqrtPoly3Lut16Table, 212729399)
+    `push(THIS.`RSqrtPoly3Lut16Table, -465907121)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1062716254)
+    `push(THIS.`RSqrtPoly3Lut16Table, -44499541)
+    `push(THIS.`RSqrtPoly3Lut16Table, 199407328)
+    `push(THIS.`RSqrtPoly3Lut16Table, -455923331)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1060221646)
+    `push(THIS.`RSqrtPoly3Lut16Table, -39439007)
+    `push(THIS.`RSqrtPoly3Lut16Table, 187083448)
+    `push(THIS.`RSqrtPoly3Lut16Table, -445917204)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1057513002)
+    `push(THIS.`RSqrtPoly3Lut16Table, -35094980)
+    `push(THIS.`RSqrtPoly3Lut16Table, 175689646)
+    `push(THIS.`RSqrtPoly3Lut16Table, -435953979)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1054608400)
+    `push(THIS.`RSqrtPoly3Lut16Table, -31347269)
+    `push(THIS.`RSqrtPoly3Lut16Table, 165156947)
+    `push(THIS.`RSqrtPoly3Lut16Table, -426085312)
+    `push(THIS.`RSqrtPoly3Lut16Table, 1051525761)
+    THIS.`LogPoly5Lut8Table = []
+    `push(THIS.`LogPoly5Lut8Table, 166189159)
+    `push(THIS.`LogPoly5Lut8Table, -263271008)
+    `push(THIS.`LogPoly5Lut8Table, 357682461)
+    `push(THIS.`LogPoly5Lut8Table, -536867223)
+    `push(THIS.`LogPoly5Lut8Table, 1073741814)
+    `push(THIS.`LogPoly5Lut8Table, 0)
+    `push(THIS.`LogPoly5Lut8Table, 91797130)
+    `push(THIS.`LogPoly5Lut8Table, -221452381)
+    `push(THIS.`LogPoly5Lut8Table, 347549389)
+    `push(THIS.`LogPoly5Lut8Table, -535551692)
+    `push(THIS.`LogPoly5Lut8Table, 1073651718)
+    `push(THIS.`LogPoly5Lut8Table, 2559)
+    `push(THIS.`LogPoly5Lut8Table, 55429773)
+    `push(THIS.`LogPoly5Lut8Table, -177286543)
+    `push(THIS.`LogPoly5Lut8Table, 325776420)
+    `push(THIS.`LogPoly5Lut8Table, -530104991)
+    `push(THIS.`LogPoly5Lut8Table, 1072960646)
+    `push(THIS.`LogPoly5Lut8Table, 38103)
+    `push(THIS.`LogPoly5Lut8Table, 35101911)
+    `push(THIS.`LogPoly5Lut8Table, -139778071)
+    `push(THIS.`LogPoly5Lut8Table, 297915163)
+    `push(THIS.`LogPoly5Lut8Table, -519690478)
+    `push(THIS.`LogPoly5Lut8Table, 1071001695)
+    `push(THIS.`LogPoly5Lut8Table, 186416)
+    `push(THIS.`LogPoly5Lut8Table, 23102252)
+    `push(THIS.`LogPoly5Lut8Table, -110088504)
+    `push(THIS.`LogPoly5Lut8Table, 268427087)
+    `push(THIS.`LogPoly5Lut8Table, -504993810)
+    `push(THIS.`LogPoly5Lut8Table, 1067326167)
+    `push(THIS.`LogPoly5Lut8Table, 555414)
+    `push(THIS.`LogPoly5Lut8Table, 15701243)
+    `push(THIS.`LogPoly5Lut8Table, -87124604)
+    `push(THIS.`LogPoly5Lut8Table, 239861114)
+    `push(THIS.`LogPoly5Lut8Table, -487185708)
+    `push(THIS.`LogPoly5Lut8Table, 1061762610)
+    `push(THIS.`LogPoly5Lut8Table, 1252264)
+    `push(THIS.`LogPoly5Lut8Table, 10960108)
+    `push(THIS.`LogPoly5Lut8Table, -69430156)
+    `push(THIS.`LogPoly5Lut8Table, 213404033)
+    `push(THIS.`LogPoly5Lut8Table, -467374507)
+    `push(THIS.`LogPoly5Lut8Table, 1054333366)
+    `push(THIS.`LogPoly5Lut8Table, 2368437)
+    `push(THIS.`LogPoly5Lut8Table, 7703441)
+    `push(THIS.`LogPoly5Lut8Table, -55178389)
+    `push(THIS.`LogPoly5Lut8Table, 188423866)
+    `push(THIS.`LogPoly5Lut8Table, -445453304)
+    `push(THIS.`LogPoly5Lut8Table, 1044702281)
+    `push(THIS.`LogPoly5Lut8Table, 4063226)
+    THIS.`Log2Poly4Lut16Table = []
+    `push(THIS.`Log2Poly4Lut16Table, -349683705)
+    `push(THIS.`Log2Poly4Lut16Table, 514860252)
+    `push(THIS.`Log2Poly4Lut16Table, -774521507)
+    `push(THIS.`Log2Poly4Lut16Table, 1549081965)
+    `push(THIS.`Log2Poly4Lut16Table, 0)
+    `push(THIS.`Log2Poly4Lut16Table, -271658431)
+    `push(THIS.`Log2Poly4Lut16Table, 496776802)
+    `push(THIS.`Log2Poly4Lut16Table, -772844764)
+    `push(THIS.`Log2Poly4Lut16Table, 1549008620)
+    `push(THIS.`Log2Poly4Lut16Table, 1259)
+    `push(THIS.`Log2Poly4Lut16Table, -217158937)
+    `push(THIS.`Log2Poly4Lut16Table, 469966332)
+    `push(THIS.`Log2Poly4Lut16Table, -767835780)
+    `push(THIS.`Log2Poly4Lut16Table, 1548587446)
+    `push(THIS.`Log2Poly4Lut16Table, 14699)
+    `push(THIS.`Log2Poly4Lut16Table, -175799370)
+    `push(THIS.`Log2Poly4Lut16Table, 439219304)
+    `push(THIS.`Log2Poly4Lut16Table, -759216789)
+    `push(THIS.`Log2Poly4Lut16Table, 1547507699)
+    `push(THIS.`Log2Poly4Lut16Table, 65699)
+    `push(THIS.`Log2Poly4Lut16Table, -143866844)
+    `push(THIS.`Log2Poly4Lut16Table, 407471403)
+    `push(THIS.`Log2Poly4Lut16Table, -747343665)
+    `push(THIS.`Log2Poly4Lut16Table, 1545528123)
+    `push(THIS.`Log2Poly4Lut16Table, 189847)
+    `push(THIS.`Log2Poly4Lut16Table, -118877791)
+    `push(THIS.`Log2Poly4Lut16Table, 376365258)
+    `push(THIS.`Log2Poly4Lut16Table, -732794890)
+    `push(THIS.`Log2Poly4Lut16Table, 1542497870)
+    `push(THIS.`Log2Poly4Lut16Table, 426993)
+    `push(THIS.`Log2Poly4Lut16Table, -99090809)
+    `push(THIS.`Log2Poly4Lut16Table, 346778829)
+    `push(THIS.`Log2Poly4Lut16Table, -716182669)
+    `push(THIS.`Log2Poly4Lut16Table, 1538346679)
+    `push(THIS.`Log2Poly4Lut16Table, 816522)
+    `push(THIS.`Log2Poly4Lut16Table, -83256460)
+    `push(THIS.`Log2Poly4Lut16Table, 319137771)
+    `push(THIS.`Log2Poly4Lut16Table, -698070351)
+    `push(THIS.`Log2Poly4Lut16Table, 1533066538)
+    `push(THIS.`Log2Poly4Lut16Table, 1394329)
+    `push(THIS.`Log2Poly4Lut16Table, -70462839)
+    `push(THIS.`Log2Poly4Lut16Table, 293601763)
+    `push(THIS.`Log2Poly4Lut16Table, -678942086)
+    `push(THIS.`Log2Poly4Lut16Table, 1526693477)
+    `push(THIS.`Log2Poly4Lut16Table, 2191193)
+    `push(THIS.`Log2Poly4Lut16Table, -60034672)
+    `push(THIS.`Log2Poly4Lut16Table, 270176585)
+    `push(THIS.`Log2Poly4Lut16Table, -659197359)
+    `push(THIS.`Log2Poly4Lut16Table, 1519292323)
+    `push(THIS.`Log2Poly4Lut16Table, 3232171)
+    `push(THIS.`Log2Poly4Lut16Table, -51465396)
+    `push(THIS.`Log2Poly4Lut16Table, 248781811)
+    `push(THIS.`Log2Poly4Lut16Table, -639156567)
+    `push(THIS.`Log2Poly4Lut16Table, 1510944906)
+    `push(THIS.`Log2Poly4Lut16Table, 4536639)
+    `push(THIS.`Log2Poly4Lut16Table, -44370441)
+    `push(THIS.`Log2Poly4Lut16Table, 229291517)
+    `push(THIS.`Log2Poly4Lut16Table, -619070546)
+    `push(THIS.`Log2Poly4Lut16Table, 1501741200)
+    `push(THIS.`Log2Poly4Lut16Table, 6118756)
+    `push(THIS.`Log2Poly4Lut16Table, -38454405)
+    `push(THIS.`Log2Poly4Lut16Table, 211558058)
+    `push(THIS.`Log2Poly4Lut16Table, -599130091)
+    `push(THIS.`Log2Poly4Lut16Table, 1491772420)
+    `push(THIS.`Log2Poly4Lut16Table, 7988267)
+    `push(THIS.`Log2Poly4Lut16Table, -33487114)
+    `push(THIS.`Log2Poly4Lut16Table, 195423423)
+    `push(THIS.`Log2Poly4Lut16Table, -579471329)
+    `push(THIS.`Log2Poly4Lut16Table, 1481123710)
+    `push(THIS.`Log2Poly4Lut16Table, 10151959)
+    `push(THIS.`Log2Poly4Lut16Table, -29282549)
+    `push(THIS.`Log2Poly4Lut16Table, 180709967)
+    `push(THIS.`Log2Poly4Lut16Table, -560158338)
+    `push(THIS.`Log2Poly4Lut16Table, 1469854024)
+    `push(THIS.`Log2Poly4Lut16Table, 12618653)
+    `push(THIS.`Log2Poly4Lut16Table, -25515190)
+    `push(THIS.`Log2Poly4Lut16Table, 166551747)
+    `push(THIS.`Log2Poly4Lut16Table, -540200057)
+    `push(THIS.`Log2Poly4Lut16Table, 1457346639)
+    `push(THIS.`Log2Poly4Lut16Table, 15558687)
+    THIS.`AtanPoly5Lut8Table = []
+    `push(THIS.`AtanPoly5Lut8Table, 204464916)
+    `push(THIS.`AtanPoly5Lut8Table, 1544566)
+    `push(THIS.`AtanPoly5Lut8Table, -357994250)
+    `push(THIS.`AtanPoly5Lut8Table, 1395)
+    `push(THIS.`AtanPoly5Lut8Table, 1073741820)
+    `push(THIS.`AtanPoly5Lut8Table, 0)
+    `push(THIS.`AtanPoly5Lut8Table, 119369854)
+    `push(THIS.`AtanPoly5Lut8Table, 56362968)
+    `push(THIS.`AtanPoly5Lut8Table, -372884915)
+    `push(THIS.`AtanPoly5Lut8Table, 2107694)
+    `push(THIS.`AtanPoly5Lut8Table, 1073588633)
+    `push(THIS.`AtanPoly5Lut8Table, 4534)
+    `push(THIS.`AtanPoly5Lut8Table, 10771151)
+    `push(THIS.`AtanPoly5Lut8Table, 190921163)
+    `push(THIS.`AtanPoly5Lut8Table, -440520632)
+    `push(THIS.`AtanPoly5Lut8Table, 19339556)
+    `push(THIS.`AtanPoly5Lut8Table, 1071365339)
+    `push(THIS.`AtanPoly5Lut8Table, 120610)
+    `push(THIS.`AtanPoly5Lut8Table, -64491917)
+    `push(THIS.`AtanPoly5Lut8Table, 329189978)
+    `push(THIS.`AtanPoly5Lut8Table, -542756389)
+    `push(THIS.`AtanPoly5Lut8Table, 57373179)
+    `push(THIS.`AtanPoly5Lut8Table, 1064246365)
+    `push(THIS.`AtanPoly5Lut8Table, 656900)
+    `push(THIS.`AtanPoly5Lut8Table, -89925028)
+    `push(THIS.`AtanPoly5Lut8Table, 390367074)
+    `push(THIS.`AtanPoly5Lut8Table, -601765924)
+    `push(THIS.`AtanPoly5Lut8Table, 85907899)
+    `push(THIS.`AtanPoly5Lut8Table, 1057328034)
+    `push(THIS.`AtanPoly5Lut8Table, 1329793)
+    `push(THIS.`AtanPoly5Lut8Table, -80805750)
+    `push(THIS.`AtanPoly5Lut8Table, 360696628)
+    `push(THIS.`AtanPoly5Lut8Table, -563142238)
+    `push(THIS.`AtanPoly5Lut8Table, 60762238)
+    `push(THIS.`AtanPoly5Lut8Table, 1065515580)
+    `push(THIS.`AtanPoly5Lut8Table, 263159)
+    `push(THIS.`AtanPoly5Lut8Table, -58345538)
+    `push(THIS.`AtanPoly5Lut8Table, 276259197)
+    `push(THIS.`AtanPoly5Lut8Table, -435975641)
+    `push(THIS.`AtanPoly5Lut8Table, -35140679)
+    `push(THIS.`AtanPoly5Lut8Table, 1101731779)
+    `push(THIS.`AtanPoly5Lut8Table, -5215389)
+    `push(THIS.`AtanPoly5Lut8Table, -36116738)
+    `push(THIS.`AtanPoly5Lut8Table, 179244146)
+    `push(THIS.`AtanPoly5Lut8Table, -266417331)
+    `push(THIS.`AtanPoly5Lut8Table, -183483381)
+    `push(THIS.`AtanPoly5Lut8Table, 1166696761)
+    `push(THIS.`AtanPoly5Lut8Table, -16608596)
+    `push(THIS.`AtanPoly5Lut8Table, 0)
+    `push(THIS.`AtanPoly5Lut8Table, 0)
+    `push(THIS.`AtanPoly5Lut8Table, 0)
+    `push(THIS.`AtanPoly5Lut8Table, 0)
+    `push(THIS.`AtanPoly5Lut8Table, 0)
+    `push(THIS.`AtanPoly5Lut8Table, 843314857)
+
+  METHOD FromFloat(`v):
+    return `int32(`trunc(`v * (1.0 * (1 << THIS.`kShift))))
+
+  METHOD ToFloat(`v):
+    return `v / (1.0 * (1 << THIS.`kShift))
+
+  METHOD CeilToInt(`v):
+    return `int32(`v + THIS.`kFractionMask) >> THIS.`kShift
+
+  METHOD FloorToInt(`v):
+    return `v >> THIS.`kShift
+
+  METHOD RoundToInt(`v):
+    return `int32(`v + THIS.`kHalf) >> THIS.`kShift
+
+  METHOD MinValue():
+    return THIS.`kMinValue
+
+  METHOD MaxValue():
+    return THIS.`kMaxValue
+
+  METHOD PI():
+    return THIS.`kPi
+
+  METHOD E():
+    return THIS.`kE
+
+  METHOD Min(`a `b):
+    return TERNARY{`a < `b}{`a}{`b}
+
+  METHOD Max(`a `b):
+    return TERNARY{`a > `b}{`a}{`b}
+
+  METHOD Ceil(`x):
+    return (`x + THIS.`kFractionMask) & THIS.`kIntegerMask
+
+  METHOD Floor(`x):
+    return `x & THIS.`kIntegerMask
+
+  METHOD Round(`x):
+    return (`x + THIS.`kHalf) & THIS.`kIntegerMask
+
+  METHOD Fract(`x):
+    return `x & THIS.`kFractionMask
+
+  METHOD Abs(`x):
+    COMMENT fails with MinValue
+    VAR `mask = `x >> 31
+    return `int32(`x + `mask) ^ `mask
+
+  METHOD Nabs(`x):
+    return `int32(-THIS.Abs(`x))
+
+  METHOD Sign(`x):
+    return ((`x >> 31) | `int32(`ushr(`uint32(-`x), 31))) << THIS.`kShift
+
+  METHOD Clamp(`a `min `max):
+    IF `max < `a:
+      return `max
+    ELSIF `min > `a:
+      return `min
+    ELSE:
+      return `a
+    ENDIF
+
+  METHOD Lerp(`a `b `t):
+    VAR `ta = `a * (THIS.`kOne - `t)
+    VAR `tb = `b * `t
+    return (`ta + `tb) >> THIS.`kShift
+
+  METHOD Neg(`x):
+    return `int32(-`x)
+
+  METHOD Add(`a `b):
+    return `int32(`a + `b)
+
+  METHOD Sub(`a `b):
+    return `int32(`a - `b)
+
+  METHOD Mul(`x `y):
+    return `int32(`floor((`x * `y) / THIS.`kOne))
+
+  METHOD Div(`a `b):
+    IF `b == 0:
+      return 0
+    ENDIF
+    return `int32(`trunc((`a * THIS.`kOne) / `b))
+
+  METHOD Mod(`a `b):
+    IF `b == 0:
+      return 0
+    ENDIF
+    return `int32(`a - (`trunc(`a / `b) * `b))
+
+  METHOD Rcp(`x):
+    IF `x == 0:
+      return 0
+    ENDIF
+    IF `x == THIS.`kMinValue:
+      return 0
+    ENDIF
+    VAR `sign = TERNARY{`x < 0}{-1}{1}
+    `x *= `sign
+    VAR `offset = 29 - THIS.`Nlz(`uint32(`x))
+    VAR `n = THIS.`ShiftRight(`x, `offset - 28)
+    VAR `ONE = 1 << 30
+    VAR `res = THIS.`RcpPoly4Lut8(`n - `ONE)
+    return THIS.`ShiftRight(`sign * `res, `offset)
+
+  METHOD Sqrt(`a):
+    IF `a <= 0:
+      return 0
+    ENDIF
+    VAR `r = `uint32(`a)
+    VAR `b = 0x40000000
+    VAR `q = 0
+    VAR `t
+    WHILE `b > 0x40:
+      `t = `uint32(`q + `b)
+      IF `r >= `t:
+        `r -= `t
+        `q = `uint32(`t + `b)
+      ENDIF
+      `r = `uint32(`r << 1)
+      `b = `b >> 1
+    ENDWHILE
+    `q = `q >> 8
+    return `q
+
+  METHOD Sqrt_64(`a):
+    IF `a <= 0:
+      return 0
+    ENDIF
+    VAR `r = `a
+    VAR `b = 0x4000000000000000
+    VAR `q = 0
+    VAR `t
+    WHILE `b > 0x40:
+      `t = `q + `b
+      IF `r >= `t:
+        `r -= `t
+        `q = `t + `b
+      ENDIF
+      `r = `r * 2
+      `b = `b / 2
+    ENDWHILE
+    `q = `floor(`q / (1 << THIS.`kShift))
+    return `q
+
+  METHOD RSqrt(`x):
+    IF `x <= 0:
+      return 0
+    ENDIF
+    VAR `ONE = 1 << 30
+    VAR `HALF_SQRT2 = 759250125
+    VAR `offset = 1 - THIS.`Nlz(`x)
+    VAR `n = THIS.`ShiftRight(`x, `offset)
+    VAR `y = THIS.`RSqrtPoly3Lut16(`n - `ONE)
+    VAR `adjust = TERNARY{(`offset & 1) != 0}{`HALF_SQRT2}{`ONE}
+    `offset = `offset >> 1
+    VAR `yr = THIS.`Qmul30(`adjust, `y)
+    return THIS.`ShiftRight(`yr, `offset + 21)
+
+  METHOD Exp(`x):
+    return THIS.Exp2(THIS.Mul(`x, THIS.`kRCP_LN2))
+
+  METHOD Exp2(`x):
+    IF `x >= 15 * THIS.`kOne:
+      return THIS.`kMaxValue
+    ENDIF
+    IF `x <= -16 * THIS.`kOne:
+      return 0
+    ENDIF
+    VAR `k = (`x & THIS.`kFractionMask) << 14
+    VAR `y = THIS.`Exp2Poly5(`k)
+    VAR `intPart = `x >> THIS.`kShift
+    return THIS.`ShiftRight(`y, 14 - `intPart)
+
+  METHOD Log(`x):
+    IF `x <= 0:
+      return 0
+    ENDIF
+    VAR `offset = 15 - THIS.`Nlz(`x)
+    VAR `n = THIS.`ShiftRight(`x, `offset - 14)
+    VAR `ONE = 1 << 30
+    VAR `y = THIS.`LogPoly5Lut8(`n - `ONE)
+    return `offset * THIS.`kRCP_LOG2_E + (`y >> 14)
+
+  METHOD Log2(`x):
+    IF `x <= 0:
+      return 0
+    ENDIF
+    VAR `offset = 15 - THIS.`Nlz(`x)
+    VAR `n = THIS.`ShiftRight(`x, `offset - 14)
+    VAR `ONE = 1 << 30
+    VAR `y = THIS.`Log2Poly4Lut16(`n - `ONE)
+    return (`offset << THIS.`kShift) + (`y >> 14)
+
+  METHOD Pow(`x `exponent):
+    IF `x <= 0:
+      return 0
+    ENDIF
+    return THIS.Exp(THIS.Mul(`exponent, THIS.Log(`x)))
+
+  METHOD Sin(`x):
+    VAR `z = THIS.Mul(THIS.`kRCP_TWO_PI, `x)
+    return THIS.`UnitSin(`z) >> 14
+
+  METHOD Cos(`x):
+    return THIS.Sin(`x + THIS.`kPiHalf)
+
+  METHOD Tan(`x):
+    VAR `z = THIS.Mul(THIS.`kRCP_TWO_PI, `x)
+    VAR `sinX = THIS.`UnitSin(`z)
+    VAR `cosX = THIS.`UnitSin(`z + (1 << 30))
+    return THIS.Div(`sinX, `cosX)
+
+  METHOD Asin(`x):
+    IF (`x < -THIS.`kOne) OR (`x > THIS.`kOne):
+      return 0
+    ENDIF
+    VAR `xx = ((THIS.`kOne + `x) * (THIS.`kOne - `x))
+    VAR `y = THIS.Sqrt_64(`xx)
+    return THIS.Atan2(`x, `floor(`y / (1 << THIS.`kShift)))
+
+  METHOD Acos(`x):
+    IF (`x < -THIS.`kOne) OR (`x > THIS.`kOne):
+      return 0
+    ENDIF
+    VAR `xx = ((THIS.`kOne + `x) * (THIS.`kOne - `x))
+    VAR `y = THIS.Sqrt_64(`xx)
+    return THIS.Atan2(`floor(`y / (1 << THIS.`kShift)), `x)
+
+  METHOD Atan(`x):
+    return THIS.Atan2(`x, THIS.`kOne)
+
+  METHOD Atan2(`y `x):
+    IF `x == 0:
+      IF `y > 0:
+        return THIS.`kPiHalf
+      ENDIF
+      IF `y < 0:
+        return -THIS.`kPiHalf
+      ENDIF
+      return 0
+    ENDIF
+    VAR `nx = THIS.Abs(`x)
+    VAR `ny = THIS.Abs(`y)
+    VAR `negMask = (`x ^ `y) >> 31
+    VAR `k
+    VAR `z
+    VAR `angle
+    IF `nx >= `ny:
+      `k = THIS.`Atan2Div(`ny, `nx)
+      `z = THIS.`AtanPoly5Lut8(`k)
+      `angle = (`negMask ^ (`z >> 14)) - `negMask
+      IF `x > 0:
+        return `angle
+      ENDIF
+      IF `y >= 0:
+        return `angle + THIS.`kPi
+      ENDIF
+      return `angle - THIS.`kPi
+    ELSE:
+      `k = THIS.`Atan2Div(`nx, `ny)
+      `z = THIS.`AtanPoly5Lut8(`k)
+      `angle = `negMask ^ (`z >> 14)
+      return TERNARY{`y > 0}{THIS.`kPiHalf - `angle}{-THIS.`kPiHalf - `angle}
+    ENDIF
+
+  METHOD `UnitSin(`z):
+    IF `int32(`z ^ (`z << 1)) < 0:
+      `z = `int32((1 << 31) - `z)
+    ENDIF
+    VAR `ONE = 1 << 30
+    VAR `zz = THIS.`Qmul30(`z, `z)
+    VAR `res = THIS.`Qmul30(THIS.`SinPoly4(`zz), `z)
+    return `res
+
+  METHOD `Atan2Div(`y `x):
+    VAR `ONE = 1 << 30
+    VAR `HALF = 1 << 29
+    VAR `offset = 1 - THIS.`Nlz(`x)
+    VAR `n = THIS.`ShiftRight(`x, `offset)
+    VAR `oox = THIS.`RcpPoly4Lut8(`n - `ONE)
+    VAR `yr = THIS.`ShiftRight(`y, `offset)
+    return THIS.`Qmul30(`yr, `oox)
+
+  METHOD `Exp2Poly5(`a):
+    VAR `y = THIS.`Qmul30(`a, 2017903)
+    `y = THIS.`Qmul30(`a, `y + 9654007)
+    `y = THIS.`Qmul30(`a, `y + 59934847)
+    `y = THIS.`Qmul30(`a, `y + 257869054)
+    `y = THIS.`Qmul30(`a, `y + 744266012)
+    `y = `y + 1073741824
+    return `y
+
+  METHOD `RcpPoly4Lut8(`a):
+    VAR `offset = (`a >> 27) * 5
+    VAR `y = THIS.`Qmul30(`a, THIS.`RcpPoly4Lut8Table[`offset + 0])
+    `y = THIS.`Qmul30(`a, `y + THIS.`RcpPoly4Lut8Table[`offset + 1])
+    `y = THIS.`Qmul30(`a, `y + THIS.`RcpPoly4Lut8Table[`offset + 2])
+    `y = THIS.`Qmul30(`a, `y + THIS.`RcpPoly4Lut8Table[`offset + 3])
+    `y = `y + THIS.`RcpPoly4Lut8Table[`offset + 4]
+    return `y
+
+  METHOD `RSqrtPoly3Lut16(`a):
+    VAR `offset = (`a >> 26) * 4
+    VAR `y = THIS.`Qmul30(`a, THIS.`RSqrtPoly3Lut16Table[`offset + 0])
+    `y = THIS.`Qmul30(`a, `y + THIS.`RSqrtPoly3Lut16Table[`offset + 1])
+    `y = THIS.`Qmul30(`a, `y + THIS.`RSqrtPoly3Lut16Table[`offset + 2])
+    `y = `y + THIS.`RSqrtPoly3Lut16Table[`offset + 3]
+    return `y
+
+  METHOD `LogPoly5Lut8(`a):
+    VAR `offset = (`a >> 27) * 6
+    VAR `y = THIS.`Qmul30(`a, THIS.`LogPoly5Lut8Table[`offset + 0])
+    `y = THIS.`Qmul30(`a, `y + THIS.`LogPoly5Lut8Table[`offset + 1])
+    `y = THIS.`Qmul30(`a, `y + THIS.`LogPoly5Lut8Table[`offset + 2])
+    `y = THIS.`Qmul30(`a, `y + THIS.`LogPoly5Lut8Table[`offset + 3])
+    `y = THIS.`Qmul30(`a, `y + THIS.`LogPoly5Lut8Table[`offset + 4])
+    `y = `y + THIS.`LogPoly5Lut8Table[`offset + 5]
+    return `y
+
+  METHOD `Log2Poly4Lut16(`a):
+    VAR `offset = (`a >> 26) * 5
+    VAR `y = THIS.`Qmul30(`a, THIS.`Log2Poly4Lut16Table[`offset + 0])
+    `y = THIS.`Qmul30(`a, `y + THIS.`Log2Poly4Lut16Table[`offset + 1])
+    `y = THIS.`Qmul30(`a, `y + THIS.`Log2Poly4Lut16Table[`offset + 2])
+    `y = THIS.`Qmul30(`a, `y + THIS.`Log2Poly4Lut16Table[`offset + 3])
+    `y = `y + THIS.`Log2Poly4Lut16Table[`offset + 4]
+    return `y
+
+  METHOD `SinPoly4(`a):
+    VAR `y = THIS.`Qmul30(`a, 162679)
+    `y = THIS.`Qmul30(`a, `y - 5018587)
+    `y = THIS.`Qmul30(`a, `y + 85566362)
+    `y = THIS.`Qmul30(`a, `y - 693598342)
+    `y = `y + 1686629713
+    return `y
+
+  METHOD `AtanPoly5Lut8(`a):
+    VAR `offset = (`a >> 27) * 6
+    VAR `y = THIS.`Qmul30(`a, THIS.`AtanPoly5Lut8Table[`offset + 0])
+    `y = THIS.`Qmul30(`a, `y + THIS.`AtanPoly5Lut8Table[`offset + 1])
+    `y = THIS.`Qmul30(`a, `y + THIS.`AtanPoly5Lut8Table[`offset + 2])
+    `y = THIS.`Qmul30(`a, `y + THIS.`AtanPoly5Lut8Table[`offset + 3])
+    `y = THIS.`Qmul30(`a, `y + THIS.`AtanPoly5Lut8Table[`offset + 4])
+    `y = `y + THIS.`AtanPoly5Lut8Table[`offset + 5]
+    return `y
+
+  METHOD `Qmul30(`a `b):
+    return `int32(`floor((`a * `b) / (1 << 30)))
+
+  METHOD `Nlz(`x):
+    VAR `n = 0
+    IF `x <= 0x0000FFFF:
+      `n = `n + 16
+      `x = `uint32(`x << 16)
+    ENDIF
+    IF `x <= 0x00FFFFFF:
+      `n = `n + 8
+      `x = `uint32(`x << 8)
+    ENDIF
+    IF `x <= 0x0FFFFFFF:
+      `n = `n + 4
+      `x = `uint32(`x << 4)
+    ENDIF
+    IF `x <= 0x3FFFFFFF:
+      `n = `n + 2
+      `x = `uint32(`x << 2)
+    ENDIF
+    IF `x <= 0x7FFFFFFF:
+      `n = `n + 1
+    ENDIF
+    IF `x == 0:
+      return 32
+    ENDIF
+    return `n
+
+  METHOD `ShiftRight(`v `shift):
+    return TERNARY{`shift >= 0}{`v >> `shift}{`v << -`shift}
+
+ENDCLASS
