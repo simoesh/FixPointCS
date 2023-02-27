@@ -356,6 +356,12 @@ CLASS FP:
   METHOD PI():
     return THIS.`kPi
 
+  METHOD PIHalf():
+    return THIS.`kPiHalf
+
+  METHOD PI2():
+    return THIS.`kPi2
+
   METHOD E():
     return THIS.`kE
 
@@ -425,6 +431,18 @@ CLASS FP:
       return 0
     ENDIF
     return `int32(`a - (`trunc(`a / `b) * `b))
+
+  METHOD Sqr(`x):
+    return THIS.Mul(`x, `x)
+
+  METHOD Hypot(`a `b):
+    return THIS.Sqrt(THIS.Add(THIS.Sqr(`a), THIS.Sqr(`b)))
+    COMMENT Possible alternative if Atan2 precision is improved:
+    COMMENT VAR `ang = THIS.Atan2(`a, `b)
+    COMMENT return THIS.Add(THIS.Mul(`a, THIS.Cos(`ang)), THIS.Mul(`b, THIS.Sin(`ang)))
+
+  METHOD Cmp(`a `b):
+    return THIS.Sign(THIS.Sub(`a, `b))
 
   METHOD Rcp(`x):
     IF `x == 0:
